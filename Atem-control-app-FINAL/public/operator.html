@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATEM Control - Operator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            transition: background-color 0.5s ease;
+        }
+
+        body.preview {
+            background: #2d5016;
+        }
+
+        body.live {
+            background: #5d1616;
+        }
+
+        .header {
+            background: rgba(45, 45, 45, 0.9);
+            padding: 15px 20px;
+            border-bottom: 2px solid #444;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .camera-selection {
+            text-align: center;
+            margin-top: 100px;
+            padding: 40px 20px;
+        }
+
+        .camera-selection h2 {
+            font-size: 2em;
+            margin-bottom: 30px;
+        }
+
+        .camera-select-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .camera-select-btn {
+            min-height: 80px;
+            border: 2px solid #555;
+            border-radius: 8px;
+            background: #333;
+            color: white;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .camera-select-btn:hover {
+            background: #444;
+            border-color: #777;
+            transform: scale(1.05);
+        }
+
+        .camera-select-btn.hidden {
+            display: none;
+        }
+
+        .camera-number {
+            font-size: 1.4em;
+            margin-bottom: 5px;
+        }
+
+        .camera-name {
+            font-size: 0.8em;
+            opacity: 0.7;
+            line-height: 1.2;
+        }
+
+        .operator-view {
+            display: none;
+            margin-top: 80px;
+            padding: 20px;
+        }
+
+        .operator-view.active {
+            display: block;
+        }
+
+        .my-camera-status {
+            text-align: center;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+        }
+
+        .my-camera-number {
+            font-size: 4em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .my-camera-state {
+            font-size: 1.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .status-description {
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
+
+        .other-cameras {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .other-cameras h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            opacity: 0.7;
+        }
+
+        .other-cameras-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 10px;
+        }
+
+        .other-camera {
+            aspect-ratio: 1;
+            border: 2px solid #555;
+            border-radius: 6px;
+            background: #333;
+            color: white;
+            font-size: 0.9em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.6;
+            text-align: center;
+            padding: 2px;
+        }
+
+        .other-camera.preview {
+            border-color: #44aa00;
+            background: #2d5016;
+            opacity: 0.8;
+        }
+
+        .other-camera.live {
+            border-color: #cc0000;
+            background: #5d1616;
+            opacity: 0.8;
+        }
+
+        .other-camera.hidden {
+            display: none;
+        }
+
+        .change-camera {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .change-camera button {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .change-camera button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .my-camera-number {
+                font-size: 3em;
+            }
+            
+            .my-camera-state {
+                font-size: 1.5em;
+            }
+            
+            .other-cameras-grid {
+                grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+                gap: 8px;
+            }
+
+            .camera-select-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .camera-select-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .camera-select-btn {
+                min-height: 70px;
+                font-size: 0.9em;
+            }
+
+            .camera-number {
+                font-size: 1.2em;
+            }
+
+            .camera-name {
+                font-size: 0.7em;
+            }
+        }
+
+        /* Full screen live state */
+        body.live .operator-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        body.live .header {
+            background: rgba(93, 22, 22, 0.9);
+        }
+
+        body.live .my-camera-status {
+            margin-bottom: 0;
+        }
+
+        body.live .my-camera-number {
+            font-size: 6em;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        body.live .other-cameras {
+            display: none;
+        }
+
+        body.live .change-camera {
+            display: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>📹 Operator View</h1>
+            <a href="/" class="back-btn">← Back to Home</a>
+        </div>
+    </div>
+
+    <div class="camera-selection" id="cameraSelection">
+        <h2>Select Your Camera</h2>
+        <div class="camera-select-grid" id="cameraSelectGrid">
+            <!-- Camera selection buttons will be generated here -->
+        </div>
+    </div>
+
+    <div class="operator-view" id="operatorView">
+        <div class="my-camera-status">
+            <div class="my-camera-number" id="myCameraNumber">1</div>
+            <div class="my-camera-state" id="myCameraState">Idle</div>
+            <div class="status-description" id="statusDescription">Waiting for instructions</div>
+        </div>
+
+        <div class="other-cameras">
+            <h3>Other Cameras Status</h3>
+            <div class="other-cameras-grid" id="otherCamerasGrid">
+                <!-- Other cameras will be shown here -->
+            </div>
+        </div>
+
+        <div class="change-camera">
+            <button onclick="showCameraSelection()">Change Camera</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let appState = {};
+        let myCamera = null;
+
+        // DOM elements
+        const cameraSelection = document.getElementById('cameraSelection');
+        const operatorView = document.getElementById('operatorView');
+        const cameraSelectGrid = document.getElementById('cameraSelectGrid');
+        const myCameraNumber = document.getElementById('myCameraNumber');
+        const myCameraState = document.getElementById('myCameraState');
+        const statusDescription = document.getElementById('statusDescription');
+        const otherCamerasGrid = document.getElementById('otherCamerasGrid');
+
+        // Initialize
+        socket.on('stateUpdate', (state) => {
+            appState = state;
+            if (myCamera) {
+                updateOperatorView();
+            } else {
+                updateCameraSelection();
+            }
+        });
+
+        function updateCameraSelection() {
+            cameraSelectGrid.innerHTML = '';
+            
+            for (let i = 1; i <= (appState.numCameras || 16); i++) {
+                const btn = document.createElement('button');
+                btn.className = 'camera-select-btn';
+                btn.onclick = () => selectCamera(i);
+                
+                // Get custom name if available
+                const customName = (appState.cameraNames && appState.cameraNames[i]) || '';
+                
+                // Create the button content
+                const numberDiv = document.createElement('div');
+                numberDiv.className = 'camera-number';
+                numberDiv.textContent = i;
+                
+                btn.appendChild(numberDiv);
+                
+                // Add custom name if it exists
+                if (customName) {
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'camera-name';
+                    nameDiv.textContent = customName;
+                    btn.appendChild(nameDiv);
+                }
+                
+                // Hide inactive cameras
+                if (appState.activeCameras && !appState.activeCameras.includes(i)) {
+                    btn.classList.add('hidden');
+                }
+                
+                cameraSelectGrid.appendChild(btn);
+            }
+        }
+
+        function selectCamera(camera) {
+            myCamera = camera;
+            // Display the custom name if available, otherwise use the number
+            const displayName = (appState.cameraNames && appState.cameraNames[camera]) || camera;
+            myCameraNumber.textContent = displayName;
+            cameraSelection.style.display = 'none';
+            operatorView.classList.add('active');
+            updateOperatorView();
+        }
+
+        function showCameraSelection() {
+            myCamera = null;
+            cameraSelection.style.display = 'block';
+            operatorView.classList.remove('active');
+            document.body.className = '';
+            updateCameraSelection();
+        }
+
+        function updateOperatorView() {
+            if (!myCamera || !appState.cameras) return;
+            
+            const myState = appState.cameras[myCamera] || 'idle';
+            
+            // Update my camera display
+            myCameraState.textContent = myState.charAt(0).toUpperCase() + myState.slice(1);
+            
+            // Update body background and status description
+            document.body.className = myState;
+            
+            switch (myState) {
+                case 'idle':
+                    statusDescription.textContent = 'Waiting for instructions';
+                    break;
+                case 'preview':
+                    statusDescription.textContent = 'Ready to go live - You are next!';
+                    break;
+                case 'live':
+                    statusDescription.textContent = 'YOU ARE LIVE ON AIR';
+                    break;
+            }
+            
+            // Update other cameras grid
+            updateOtherCameras();
+        }
+
+        function updateOtherCameras() {
+            otherCamerasGrid.innerHTML = '';
+            
+            for (let i = 1; i <= (appState.numCameras || 16); i++) {
+                if (i === myCamera) continue; // Skip my camera
+                
+                const div = document.createElement('div');
+                div.className = `other-camera ${appState.cameras[i] || 'idle'}`;
+                
+                // Use custom name if available, otherwise use number
+                const displayName = (appState.cameraNames && appState.cameraNames[i]) || i;
+                div.textContent = displayName;
+                
+                // Hide inactive cameras
+                if (appState.activeCameras && !appState.activeCameras.includes(i)) {
+                    div.classList.add('hidden');
+                }
+                
+                otherCamerasGrid.appendChild(div);
+            }
+        }
+
+        // Initialize camera selection on load
+        updateCameraSelection();
+    </script>
+</body>
+</html>
